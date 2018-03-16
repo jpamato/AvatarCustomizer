@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using SimpleJSON;
+using System.IO;
 
 public class Customizer : MonoBehaviour {
 
@@ -9,6 +11,8 @@ public class Customizer : MonoBehaviour {
 	public InputField nombre;
 	public InputField apellido;
 	public Dropdown sexo;
+
+	public Text name2Show;
 
 	bool apellidoDone, nombreDone, sexoDone;
 
@@ -33,7 +37,7 @@ public class Customizer : MonoBehaviour {
 
 	public List<Button> ItemButtons;
 
-	public int sizeIndex;
+	int sizeIndex;
 	int peinadoIndex;
 	int ropa_arribaIndex;
 	int ropa_abajoIndex;
@@ -81,23 +85,26 @@ public class Customizer : MonoBehaviour {
 		}
 	}
 
-	public void SetAvatarSex(){		
-		if (sexo.value == 1) {
-			foreach (GameObject go in chicas)
-				go.SetActive (false);
-			SetAvatarSize (chicos, sizeIndex);
-		} else if (sexo.value == 2) {
+	List<GameObject> SetAvatarSex(){		
+		if (female) {
 			foreach (GameObject go in chicos)
 				go.SetActive (false);
 			SetAvatarSize (chicas, sizeIndex);
+			return chicas;
+		} else{
+			foreach (GameObject go in chicas)
+				go.SetActive (false);
+			SetAvatarSize (chicos, sizeIndex);
+			return chicos;
 		}
-		female = sexo.value == 1 ? false : true;
-
-		SetSizeScreen ();
 	}
 
 	public void SetSizeScreen(){
+		female = sexo.value == 1 ? false : true;
+		SetAvatarSex ();
 		SelectItem (0);
+		//LoadAvatarData("Carlos_Sacan");
+		name2Show.text = nombre.text + " " + apellido.text;
 		screens.SetScreen (2);
 	}
 
@@ -238,6 +245,93 @@ public class Customizer : MonoBehaviour {
 
 			SetAvatarSize (chicos, sizeIndex);
 		}
+	}
+
+	public void SaveAvatar(){
+		SaveAvatarData (nombre.text + "_" + apellido.text);
+		screens.SetScreen (4);
+	}
+
+	void SaveAvatarData(string name){
+		string id = System.DateTime.Now.ToString ("yyyy-MM-dd_HH-mm-ss");
+		string sexo = female ? "F" : "M";
+		string json = "{\n";
+		json += "\"nombre\":\""+name+"\",\n";
+		json += "\"id\":\""+id+"\",\n";
+		json += "\"sexo\":\""+sexo+"\",\n";
+		json += "\"sizeIndex\":\""+sizeIndex+"\",\n";
+		json += "\"peinadoIndex\":\""+peinadoIndex+"\",\n";
+		json += "\"ropa_arribaIndex\":\""+ropa_arribaIndex+"\",\n";
+		json += "\"ropa_abajoIndex\":\""+ropa_abajoIndex+"\",\n";
+		json += "\"calzadoIndex\":\""+calzadoIndex+"\",\n";
+		json += "\"accesorioIndex\":\""+accesorioIndex+"\",\n";
+		json += "\"maquillajeIndex\":\""+maquillajeIndex+"\",\n";
+		json += "\"barbaIndex\":\""+maquillajeIndex+"\",\n";
+		json += "\"tatuajeIndex\":\""+tatuajeIndex+"\"\n}";
+
+		using (FileStream fs = new FileStream("Assets/Resources/AvatarJsons/"+name+"_"+id+".json", FileMode.Create)){
+			using (StreamWriter writer = new StreamWriter(fs)){
+				writer.Write(json);
+			}
+		}
+		#if UNITY_EDITOR
+		UnityEditor.AssetDatabase.Refresh ();
+		#endif
+
+		//PlayerPrefs.SetString ("AvatarData",json);
+	}
+
+	public void LoadAvatarData(string file){
+
+		string filePath = "AvatarJsons/" + file.Replace(".json", "");
+		TextAsset json = Resources.Load<TextAsset>(filePath);
+
+		//Debug.Log (json.text);
+		/*var N = JSON.Parse(text.text);*/
+
+		//string json = PlayerPrefs.GetString ("AvatarData");
+		if (!json.text.Equals ("")) {
+			var N = JSON.Parse (json.text);
+			female = N ["sexo"]=="F"?true:false;
+			sizeIndex = N ["sizeIndex"].AsInt;
+			peinadoIndex = N ["peinadoIndex"].AsInt;
+			ropa_arribaIndex = N ["ropa_arribaIndex"].AsInt;
+			ropa_abajoIndex = N ["ropa_abajoIndex"].AsInt;
+			calzadoIndex = N ["calzadoIndex"].AsInt;
+			accesorioIndex = N ["accesorioIndex"].AsInt;
+			maquillajeIndex = N ["maquillajeIndex"].AsInt;
+			barbaIndex = N ["barbaIndex"].AsInt;
+			tatuajeIndex = N ["tatuajeIndex"].AsInt;
+
+			List<GameObject> list = SetAvatarSex ();
+			SetAvatarSize (list, sizeIndex);
+			aCustom.SetPeinado (peinadoIndex);
+			aCustom.SetRopaArriba (ropa_arribaIndex);
+			aCustom.SetRopaAbajo(ropa_abajoIndex);
+			aCustom.SetCalzado(calzadoIndex);
+			aCustom.SetAccesorio(accesorioIndex);
+			aCustom.SetMaquillaje(maquillajeIndex);
+			aCustom.SetBarba(barbaIndex);
+			aCustom.SetTatuaje(tatuajeIndex);
+
+		}
+	}
+
+	public void Reset(){
+		nombre.text = "";
+		apellido.text = "";
+		sexo.value = 0;
+		screens.SetScreen (0);
+
+		sizeIndex=0;
+		peinadoIndex=0;
+		ropa_arribaIndex=0;
+		ropa_abajoIndex=0;
+		calzadoIndex=0;
+		accesorioIndex=0;
+		maquillajeIndex=0;
+		barbaIndex=0;
+		tatuajeIndex=0;
 	}
 
 }
